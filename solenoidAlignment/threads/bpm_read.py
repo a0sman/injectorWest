@@ -1,6 +1,6 @@
 #!/usr/local/lcls/package/python/current/bin/python
 
-from PyQt4.QtCore import QThread, pyqtSignal
+from PyQt5.QtCore import QThread, pyqtSignal
 import numpy as np
 
 SETTLE = int(1e5)

@@ -1,10 +1,9 @@
 #!/usr/local/lcls/package/python/current/bin/python
 
 from epics import PV
-from model import rf_station_constants as sc
-from utils import factory as f
+from .model import rf_station_constants as sc
 import numpy as np
-import logger
+from .logger import logger
 
 def get_stations():
     """Return different stations that have models"""

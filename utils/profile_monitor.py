@@ -1,12 +1,12 @@
 #!/usr/local/lcls/package/python/current/bin/python
 
 from epics import PV
-from model import profmon_constants as pc
+from .model import profmon_constants as pc
 from inspect import getmembers
 from time import sleep
 from threading import Thread
 from numpy import array_equal
-import logger
+from .logger import logger
 from functools import partial
 
 # data '/u1/lcls/matlab/data/2019/2019-01/2019-01-25/ProfMon-CAMR_LGUN_210-2019-01-25-165017.mat'
@@ -158,7 +158,7 @@ class LampCon2(object):
             return
 
         if val == state == pc.OFF:
-            sefl._logger.info("The lamp is already off")
+            self._logger.info("The lamp is already off")
             return
         
         self._logger.info('Turning lamp {0}'.format(val))

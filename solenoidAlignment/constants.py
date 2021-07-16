@@ -1,6 +1,3 @@
-#!/usr/local/lcls/package/python/current/bin/python
-
-import numpy as np
 
 SOL_BPM = {
     'SOL1B': 'BPM1B', 

@@ -1,8 +1,8 @@
 #!/usr/local/lcls/package/python/current/bin/python
 
 from epics import PV
-from model import motor_constants as mtc
-import logger
+from .model import motor_constants as mtc
+from .logger import logger
 
 def get_motors():
     """Return MAD names of all movers that have models"""

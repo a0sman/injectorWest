@@ -3,6 +3,7 @@ import numpy as np
 from numpy.linalg import pinv
 from math import sin, cos, sqrt
 
+
 # L - magnetic length of solenoid
 # Bo - magnetic filed strength in solenoid
 # Bp = Beta*gamma*m*c (beam momentum)
@@ -55,7 +56,7 @@ class SolCorrection(object):
     @property
     def y_stds(self):
         return self._y_stds
-    
+
     @property
     def b_vals(self):
         return self._b_vals
@@ -67,36 +68,36 @@ class SolCorrection(object):
     def calc_p(self):
         """momentum calculation"""
         gamma = 1.0 + (self._e_gun / 0.511)
-        beta = sqrt(1.0 - (1/gamma)**2)
-        return beta*gamma*sc.m_e*sc.c
+        beta = sqrt(1.0 - (1 / gamma) ** 2)
+        return beta * gamma * sc.m_e * sc.c
 
     def calc_K(self, b, p):
         """Get the current K value"""
-        return (b * sc.e) / (2*p)
+        return (b * sc.e) / (2 * p)
 
     def calc_c(self):
         """c term"""
-        return cos(self._K*self._L)
+        return cos(self._K * self._L)
 
     def calc_s(self):
         """s term"""
-        return sin(self._K*self._L)
+        return sin(self._K * self._L)
 
     def x11(self):
         """first term, x"""
-        return self._c**2 - self._d*self._K*self._s*self._c
-    
+        return self._c ** 2 - self._d * self._K * self._s * self._c
+
     def x12(self):
         """second term, x"""
-        return self._s*self._c*(1/self._K) + self._d*self._c**2
+        return self._s * self._c * (1 / self._K) + self._d * self._c ** 2
 
     def x13(self):
         """third term, x"""
-        return self._s*self._c - self._d*self._K*self._s**2
-    
+        return self._s * self._c - self._d * self._K * self._s ** 2
+
     def x14(self):
         """fourth term, x"""
-        return self._s**2*(1/self._K) + self._d*self._s*self._c
+        return self._s ** 2 * (1 / self._K) + self._d * self._s * self._c
 
     def x15(self):
         """Default"""
@@ -108,24 +109,24 @@ class SolCorrection(object):
 
     def y11(self):
         """first term y"""
-        return -self._s*self._c + self._d*self._K*self._s**2
+        return -self._s * self._c + self._d * self._K * self._s ** 2
 
     def y12(self):
         """second term y"""
-        return -self._s**2*(1/self._K) - self._d*self._s*self._c
+        return -self._s ** 2 * (1 / self._K) - self._d * self._s * self._c
 
     def y13(self):
         """third term y"""
-        return (self._c**2 - self._d*self._K*self._s*self._c)
+        return self._c ** 2 - self._d * self._K * self._s * self._c
 
     def y14(self):
         """fourth term y"""
-        return (self._s*self._c*(1/self._K) + self._d*self._c**2)
+        return self._s * self._c * (1 / self._K) + self._d * self._c ** 2
 
     def y15(self):
         """Default"""
         return 0
-    
+
     def y16(self):
         """Default"""
         return 1
@@ -163,27 +164,26 @@ class SolCorrection(object):
     def gen_x_arr(self):
         """The x array froma single measurement"""
         arr = np.array([
-              self.x11(), 
-              self.x12(), 
-              self.x13(), 
-              self.x14(), 
-              self.x15(), 
-              self.x16()])
-        
-        return  arr
+            self.x11(),
+            self.x12(),
+            self.x13(),
+            self.x14(),
+            self.x15(),
+            self.x16()])
+
+        return arr
 
     def gen_y_arr(self):
         """The y array from single measurement"""
         arr = np.array([
-              self.y11(), 
-              self.y12(), 
-              self.y13(), 
-              self.y14(), 
-              self.y15(), 
-              self.y16()])
+            self.y11(),
+            self.y12(),
+            self.y13(),
+            self.y14(),
+            self.y15(),
+            self.y16()])
 
         return arr
-
 
     def calc_offsets(self):
         """Solve the problem"""

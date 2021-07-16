@@ -1,9 +1,9 @@
 #!/usr/local/lcls/package/python/current/bin/python
 
 from epics import PV
-from model import bpm_constants as bc
+from .model import bpm_constants as bc
 import numpy as np
-import logger
+from .logger import logger
 from threading import Thread
 
 def get_bpms():

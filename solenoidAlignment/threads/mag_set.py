@@ -1,6 +1,6 @@
 #!/usr/local/lcls/package/python/current/bin/python
 
-from PyQt4.QtCore import QThread
+from PyQt5.QtCore import QThread
 SETTLE = int(1e5)
 
 class MagnetSet(QThread):

@@ -1,34 +1,42 @@
-#!/usr/local/lcls/package/python/current/bin/python
+from PyQt5.QtCore import pyqtSlot
+from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
+from matplotlib.figure import Figure
 
+from pydm import Display
 import sys
 import os
-import logging
-from PyQt4 import QtGui, QtCore 
-from PyQt4.QtCore import * 
-from PyQt4.QtGui import * 
 import numpy as np
-import pyqtgraph as pg
-from view import Ui_MainWindow
-from argparse import ArgumentParser
-import constants as c
 from threads import BPMRead, MagnetSet
+import constants
+from PyQt5.QtGui import QDoubleValidator, QIntValidator
+
 sys.path.append('..')
-from lcls2_interface import BPM, Magnet
-from lcls2_interface import MockMagnet
-from lcls2_interface.utils import SolCorrection
-from lcls2_interface import logger
+from utils import BPM, Magnet
+from utils import MockMagnet
+from utils.utils import SolCorrection
+from utils import logger
+
 
 # TODO: Use enum module when available to keep scan state for clean living
 
-class SolAlign(QMainWindow):
-    def __init__(self, debug=False):
-        QMainWindow.__init__(self)
-        self.ui = Ui_MainWindow()
-        self.ui.setupUi(self)
+
+class MplCanvas(FigureCanvasQTAgg):
+
+    def __init__(self, width=5, height=4, dpi=100):
+        fig = Figure(figsize=(width, height), dpi=dpi)
+        self.axes = fig.add_subplot(111)
+        super(MplCanvas, self).__init__(fig)
+
+
+class SolAlign(Display):
+
+    def __init__(self, parent=None, args=None, ui_filename="solenoidAlignment.ui"):
+        super(SolAlign, self).__init__(parent=parent, args=args,
+                                       ui_filename=ui_filename)
         self.connect_signals()
-        self._debug = debug
+        self._debug = False
         self.bpm = BPM()
-        self.solenoid = self.get_sol() 
+        self.solenoid = self.get_sol()
         self.set_initial_ui()
         self.sol_cor = None
         self.b_thread = None
@@ -36,8 +44,10 @@ class SolAlign(QMainWindow):
         self.sol_vals = None
         self.abort = False
         self.logger = logger.custom_logger(__name__)
+
+        # self.plotCanvas = MplCanvas()
         self.setup_plot()
-        print(os.getcwd())
+        # print(os.getcwd())
 
     ############ Setup Methods ############
 
@@ -70,35 +80,39 @@ class SolAlign(QMainWindow):
 
     def set_initial_ui(self):
         """Set the ui after setting the solenoid"""
-        self.setWindowTitle(c.WIN_TITLE)
-        self.ui.statusbar.showMessage(c.INIT_MSG)
+        # self.setWindowTitle(constants.WIN_TITLE)
+        self.ui.statusbar.setText(constants.INIT_MSG)
         self.ui.bpm_label.setText(self.bpm.name)
         self.set_bact(self.solenoid.bact)
         self.solenoid.add_clbk(self.bact_clbk)
         self.set_sol_hi_low()
-        self.ui.init_sol_val.setText(c.INIT_VAL)
+        self.ui.init_sol_val.setText(constants.INIT_VAL)
         self.ui.bpm_label.setText(self.bpm.name)
-        self.ui.statusbar.setStyleSheet('color: white')
+        # self.ui.statusbar.setStyleSheet('color: white')
         self.ui.apply_cor.setEnabled(False)
 
     def setup_plot(self):
         """Initial plot setup"""
-        layout = QtGui.QGridLayout()
-        self.ui.sol_plot.setLayout(layout)
-        self.ui.sol_plot.showGrid(1,1)
-        self.ui.sol_plot.getPlotItem().setLabel('left', text=c.Y_TEXT)
-        self.ui.sol_plot.getPlotItem().setLabel('bottom', text=c.X_TEXT)
-        self.ui.sol_plot.getPlotItem().setTitle(c.PLOT_TITLE)
-        self.ui.sol_plot.addLegend()
-        self.ui.sol_plot.plot([], [], pen='r', name='x')
-        self.ui.sol_plot.plot([], [], pen='g', name='y')
+        self.ui.plotLayout.addWidget(self.plotCanvas)
+        # layout = QtGui.QGridLayout()
+        # self.ui.sol_plot.setLayout(layout)
+        # self.ui.sol_plot.showGrid(1, 1)
+        self.plotCanvas.axes.set_title(constants.PLOT_TITLE)
+        self.plotCanvas.axes.set_xlabel(constants.X_TEXT)
+        self.plotCanvas.axes.set_ylabel(constants.Y_TEXT)
+        # self.plotCanvas.axes.setLabel('left', text=constants.Y_TEXT)
+        # self.ui.sol_plot.getPlotItem().setLabel('bottom', text=constants.X_TEXT)
+        # self.ui.sol_plot.getPlotItem().setTitle(constants.PLOT_TITLE)
+        # self.ui.sol_plot.addLegend()
+        # self.ui.sol_plot.plot([], [], pen='r', name='x')
+        # self.ui.sol_plot.plot([], [], pen='g', name='y')
 
     ################ UI Methods ################
 
     def set_scanning_ui(self):
         """Convenience method to set the ui while we're scanning"""
-        self.ui.start_button.setStyleSheet(c.ABORT_BTN_CLR)
-        self.ui.start_button.setText(c.ABORT)
+        self.ui.start_button.setStyleSheet(constants.ABORT_BTN_CLR)
+        self.ui.start_button.setText(constants.ABORT)
         self.set_binit(self.solenoid.bact)
         self.ui.sol_combo.setEnabled(False)
         self.ui.percent_sb.setEnabled(False)
@@ -107,11 +121,11 @@ class SolAlign(QMainWindow):
         self.ui.meas_num_combo.setEnabled(False)
         self.ui.bpm_readings.setEnabled(False)
         self.ui.apply_cor.setEnabled(False)
-        
+
     def set_idle_ui(self):
         """Conveninece method to set the ui to be ready to start a scan"""
-        self.ui.start_button.setStyleSheet(c.START_BTN_CLR)
-        self.ui.start_button.setText(c.START)
+        self.ui.start_button.setStyleSheet(constants.START_BTN_CLR)
+        self.ui.start_button.setText(constants.START)
         self.ui.sol_combo.setEnabled(True)
         self.ui.percent_sb.setEnabled(True)
         self.ui.sol_upper.setReadOnly(False)
@@ -124,49 +138,49 @@ class SolAlign(QMainWindow):
 
     def get_sol(self):
         """Get the solenoid based on debug"""
-        name = unicode(self.ui.sol_combo.currentText())
-        solenoid = Magnet(name=name)
-        if self._debug:
-            solenoid = MockMagnet(name=name)
+        name = np.unicode(self.ui.sol_combo.currentText())
+
+        solenoid = Magnet(name=name) if not self._debug else MockMagnet(name=name)
+
         return solenoid
 
     def sol_select(self):
         """Solenoid selection combo box action"""
-        cur_name = unicode(self.ui.sol_combo.currentText())
+        cur_name = np.unicode(self.ui.sol_combo.currentText())
 
         if cur_name == self.solenoid.name:
-            self.log_msg(c.SELECTED.format(cur_name))
+            self.log_msg(constants.SELECTED.format(cur_name))
             return
 
         self.solenoid.remove_clbk(self.bact_clbk)
         self.solenoid = self.get_sol()
         self.solenoid.add_clbk(self.bact_clbk)
-        self.bpm = BPM(c.SOL_BPM[cur_name])
+        self.bpm = BPM(constants.SOL_BPM[cur_name])
         self.ui.bpm_label.setText(self.bpm.name)
-        self.log_msg(c.NEW_SELECTED.format(cur_name))
+        self.log_msg(constants.NEW_SELECTED.format(cur_name))
         self.set_sol_hi_low()
 
     def upper_changed(self):
-        """Log upper limit change for scan""" 
+        """Log upper limit change for scan"""
         upper = float(self.ui.sol_upper.text())
-        self.log_msg(c.UPPER_SCAN.format(upper))
+        self.log_msg(constants.UPPER_SCAN.format(upper))
 
     def lower_changed(self):
         """Log lower limit change for scan"""
         lower = float(self.ui.sol_lower.text())
-        self.log_msg(c.LOWER_SCAN.format(lower))
+        self.log_msg(constants.LOWER_SCAN.format(lower))
 
     def meas_num_select(self):
         """Log number of measurements change for scan"""
         meas_num = int(self.ui.meas_num_combo.currentText())
-        self.log_msg(c.MEAS_NUM.format(meas_num))
+        self.log_msg(constants.MEAS_NUM.format(meas_num))
 
     def set_sol_hi_low(self):
         """Get the upper and lower limits based on percent in spin box"""
         bact = self.solenoid.bact
         percent = self.ui.percent_sb.value() * 1.e-2
-        upper = (1 + percent)*bact
-        lower = (1 - percent)*bact
+        upper = (1 + percent) * bact
+        lower = (1 - percent) * bact
         self.ui.sol_upper.setText('{:.3g}'.format(upper))
         self.ui.sol_lower.setText('{:.3g}'.format(lower))
 
@@ -186,18 +200,18 @@ class SolAlign(QMainWindow):
 
     def toggle_scan(self):
         """Start or Abort a scan"""
-        if self.ui.start_button.text() == c.ABORT:
+        if self.ui.start_button.text() == constants.ABORT:
             self.abort = True
-            self.log_msg(c.ABORT_MSG)
+            self.log_msg(constants.ABORT_MSG)
             self.restore()
             return
-        
+
         self.start_scan()
 
     def start_scan(self):
         """Start the solenoid alignment scan"""
-        self.log_msg(c.START_MSG)
-        self.set_scanning_ui() 
+        self.log_msg(constants.START_MSG)
+        self.set_scanning_ui()
         self.sol_vals = self.get_sol_vals()
         # Need to get actual z locations and Leff
         self.sol_cor = SolCorrection(self.solenoid, 0.75, 0.1)
@@ -215,7 +229,7 @@ class SolAlign(QMainWindow):
         if len(self.sol_vals) > 0:
             self.run_sol_thread()
             return
-            
+
         # We've finished the scan
         self.restore()
         self.set_offsets()
@@ -261,7 +275,7 @@ class SolAlign(QMainWindow):
 
     def get_sol_vals(self):
         """Find the steps for the current scan"""
-        upper = float(self.ui.sol_upper.text())  
+        upper = float(self.ui.sol_upper.text())
         lower = float(self.ui.sol_lower.text())
         steps = int(self.ui.meas_num_combo.currentText())
         sol_vals = np.linspace(lower, upper, steps).tolist()
@@ -271,6 +285,8 @@ class SolAlign(QMainWindow):
 
     def plot(self):
         """Update the plot"""
+        self.plotCanvas.axes.cla()
+        self.plotCanvas.draw_idle()
         if len(self.sol_cor.b_vals) > 0:
             b = self.sol_cor.b_vals
             x = self.sol_cor.x_vals
@@ -278,30 +294,20 @@ class SolAlign(QMainWindow):
             y_std = self.sol_cor.y_stds[-1]
             x_std = self.sol_cor.x_stds[-1]
             print('x std ', x_std)
-            #err_x = pg.ErrorBarItem(x=b, y=x[-1], height=x_std, beam=0.5)
-            #err_y = pg.ErrorBarItem(x=b, y=y[-1], height=y_std, beam=0.5)
-            self.ui.sol_plot.plot(b, x, pen='r', clear=True)
-            #self.ui.sol_plot.addItem(err_x)
-            #self.ui.sol_plot.addItem(err_y)
-            self.ui.sol_plot.plot(b, y, pen='g')
+            # err_x = pg.ErrorBarItem(x=b, y=x[-1], height=x_std, beam=0.5)
+            # err_y = pg.ErrorBarItem(x=b, y=y[-1], height=y_std, beam=0.5)
+            self.plotCanvas.axes.plot(b, x, pen='r', clear=True)
+            # self.ui.sol_plot.addItem(err_x)
+            # self.ui.sol_plot.addItem(err_y)
+            self.plotCanvas.axes.plot(b, y, pen='g')
 
     ############# Corrections ##################
 
     def apply_correction(self):
         self.log_msg('applying correction')
-        
+
     ############# Log and status bar message #################
-    
+
     def log_msg(self, msg):
         self.logger.info(msg)
-        self.ui.statusbar.showMessage(msg)
-        
-
-def main():
-    app = QApplication(sys.argv)
-    window = SolAlign()
-    window.show()
-    sys.exit(app.exec_())
-
-if __name__ == '__main__':
-    main()
+        self.ui.statusbar.setText(msg)

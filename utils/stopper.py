@@ -1,8 +1,8 @@
 #!/usr/local/lcls/package/python/current/bin/python
 
 from epics import PV
-from model import stopper_constants as sc
-from logger import logger
+from .model import stopper_constants as sc
+from .logger import logger
 
 def get_stoppers():
     """Return MAD names of aall stopers that have models"""

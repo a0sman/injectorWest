@@ -2,9 +2,9 @@
 
 import epics
 from epics import PV
-from model import magnet_constants as mc
+from .model import magnet_constants as mc
 from inspect import getmembers
-import logger
+from .logger import logger
 from threading import Thread
 from time import sleep
 

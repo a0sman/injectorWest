@@ -3,7 +3,7 @@
 import sys
 import unittest
 import inspect
-from magnet import Magnet, get_magnets
+from .magnet import Magnet, get_magnets
 from mock_magnet import MockMagnet
 
 ATTRS = [
