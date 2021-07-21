@@ -8,12 +8,15 @@ from .logger import logger
 from threading import Thread
 from time import sleep
 
+
 def get_magnets():
     """Return MAD names of all magenets that have models"""
     return mc.MAGNETS.keys()
 
+
 class Magnet(object):
     """Magnet control"""
+
     def __init__(self, name='SOL1B'):
         if name not in mc.MAGNETS.keys():
             raise ValueError('You have not specified a valid magnet')
@@ -26,17 +29,21 @@ class Magnet(object):
         self._ctrl = PV(mag_dict['ctrl'])
         self._tol = mag_dict['tol']
         self._length = mag_dict['length']
-        self._ctrl_vars = self._ctrl.get_ctrlvars()['enum_strs']
+        ctrl_vars = self._ctrl.get_ctrlvars()
+        if ctrl_vars:
+            self._ctrl_vars = ctrl_vars['enum_strs']
         self._pv_attrs = self.find_pv_attrs()
         self._logger = logger.custom_logger(__name__)
 
     def check_state(f):
         """Decorator to only allow transitions in 'Ready' state"""
+
         def decorated(self, *args, **kwargs):
             if self.ctrl_value != 'Ready':
                 self._logger.info('Unable to perform action, magnet not in Ready state')
                 return
             return f(self, *args, **kwargs)
+
         return decorated
 
     @property
@@ -132,7 +139,7 @@ class Magnet(object):
         """Save BDES"""
         self._ctrl.put(mc.CTRL.index('UNDO_BDES'))
 
-    @check_state 
+    @check_state
     def dac_zero(self):
         """DAC zero magnet"""
         self._ctrl.put(mc.CTRL.index('DAC_ZERO'))
@@ -194,5 +201,3 @@ class Magnet(object):
 
         self._logger.info('remvong callback {0}'.format(fn))
         getattr(self, attr).remove_callback(index=index)
-
-        

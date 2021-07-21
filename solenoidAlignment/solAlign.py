@@ -45,7 +45,7 @@ class SolAlign(Display):
         self.abort = False
         self.logger = logger.custom_logger(__name__)
 
-        # self.plotCanvas = MplCanvas()
+        self.plotCanvas = MplCanvas()
         self.setup_plot()
         # print(os.getcwd())
 
@@ -179,10 +179,10 @@ class SolAlign(Display):
         """Get the upper and lower limits based on percent in spin box"""
         bact = self.solenoid.bact
         percent = self.ui.percent_sb.value() * 1.e-2
-        upper = (1 + percent) * bact
-        lower = (1 - percent) * bact
-        self.ui.sol_upper.setText('{:.3g}'.format(upper))
-        self.ui.sol_lower.setText('{:.3g}'.format(lower))
+        upper = (1 + percent) * bact if bact else None
+        lower = (1 - percent) * bact if bact else None
+        self.ui.sol_upper.setText('{:.3g}'.format(upper) if upper else None)
+        self.ui.sol_lower.setText('{:.3g}'.format(lower) if lower else None)
 
     def bact_clbk(self, value=None, **kw):
         """Callback update bact for solenoid"""
@@ -190,7 +190,7 @@ class SolAlign(Display):
 
     def set_bact(self, bact):
         """Helper method to set bact in ui"""
-        self.ui.cur_sol_val.setText('{:.3g}'.format(bact))
+        self.ui.cur_sol_val.setText('{:.3g}'.format(bact) if bact else None)
 
     def set_binit(self, binit):
         """Helper method to set binit at start of scan"""
