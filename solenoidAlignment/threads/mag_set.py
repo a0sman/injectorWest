@@ -12,5 +12,6 @@ class MagnetSet(QThread):
     def run(self):
         """Wait until we're in tol, then start get bpm thread"""
         self.sol.bctrl = self.bval
+        QThread.usleep(int(5e6))
         while abs(self.bval-self.sol.bact) > self.sol.tol:
             QThread.usleep(SETTLE)

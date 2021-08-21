@@ -9,6 +9,7 @@ import numpy as np
 from threads import BPMRead, MagnetSet
 import constants
 from PyQt5.QtGui import QDoubleValidator, QIntValidator
+from time import sleep
 
 sys.path.append('..')
 from utils import BPM, Magnet
@@ -46,6 +47,7 @@ class SolAlign(Display):
         self.logger = logger.custom_logger(__name__)
 
         self.plotCanvas = MplCanvas()
+        self.ui.plotLayout.addWidget(self.plotCanvas)
         self.setup_plot()
         # print(os.getcwd())
 
@@ -85,27 +87,19 @@ class SolAlign(Display):
         self.ui.bpm_label.setText(self.bpm.name)
         self.set_bact(self.solenoid.bact)
         self.solenoid.add_clbk(self.bact_clbk)
-        self.set_sol_hi_low()
-        self.ui.init_sol_val.setText(constants.INIT_VAL)
+        #self.set_sol_hi_low()
+        self.set_binit(self.solenoid.bact)
+        self.set_bact(self.solenoid.bact)
         self.ui.bpm_label.setText(self.bpm.name)
         # self.ui.statusbar.setStyleSheet('color: white')
         self.ui.apply_cor.setEnabled(False)
 
     def setup_plot(self):
         """Initial plot setup"""
-        self.ui.plotLayout.addWidget(self.plotCanvas)
-        # layout = QtGui.QGridLayout()
-        # self.ui.sol_plot.setLayout(layout)
-        # self.ui.sol_plot.showGrid(1, 1)
+        self.plotCanvas.axes.cla()
         self.plotCanvas.axes.set_title(constants.PLOT_TITLE)
         self.plotCanvas.axes.set_xlabel(constants.X_TEXT)
         self.plotCanvas.axes.set_ylabel(constants.Y_TEXT)
-        # self.plotCanvas.axes.setLabel('left', text=constants.Y_TEXT)
-        # self.ui.sol_plot.getPlotItem().setLabel('bottom', text=constants.X_TEXT)
-        # self.ui.sol_plot.getPlotItem().setTitle(constants.PLOT_TITLE)
-        # self.ui.sol_plot.addLegend()
-        # self.ui.sol_plot.plot([], [], pen='r', name='x')
-        # self.ui.sol_plot.plot([], [], pen='g', name='y')
 
     ################ UI Methods ################
 
@@ -121,6 +115,7 @@ class SolAlign(Display):
         self.ui.meas_num_combo.setEnabled(False)
         self.ui.bpm_readings.setEnabled(False)
         self.ui.apply_cor.setEnabled(False)
+        self.setup_plot()    
 
     def set_idle_ui(self):
         """Conveninece method to set the ui to be ready to start a scan"""
@@ -177,10 +172,10 @@ class SolAlign(Display):
 
     def set_sol_hi_low(self):
         """Get the upper and lower limits based on percent in spin box"""
-        bact = self.solenoid.bact
+        tol = self.solenoid.tol
         percent = self.ui.percent_sb.value() * 1.e-2
-        upper = (1 + percent) * bact if bact else None
-        lower = (1 - percent) * bact if bact else None
+        upper = (percent) * tol if tol else None
+        lower = (-percent) * tol if tol else None
         self.ui.sol_upper.setText('{:.3g}'.format(upper) if upper else None)
         self.ui.sol_lower.setText('{:.3g}'.format(lower) if lower else None)
 
@@ -214,7 +209,7 @@ class SolAlign(Display):
         self.set_scanning_ui()
         self.sol_vals = self.get_sol_vals()
         # Need to get actual z locations and Leff
-        self.sol_cor = SolCorrection(self.solenoid, 0.75, 0.1)
+        self.sol_cor = SolCorrection(self.solenoid, float(self.ui.gun_energy.text()))
         self.run_step()
 
     def run_step(self):
@@ -224,7 +219,6 @@ class SolAlign(Display):
             self.abort = False
             self.restore()
             return
-
         # We've run through all sol vals
         if len(self.sol_vals) > 0:
             self.run_sol_thread()
@@ -285,21 +279,21 @@ class SolAlign(Display):
 
     def plot(self):
         """Update the plot"""
-        self.plotCanvas.axes.cla()
+        #self.plotCanvas.axes.cla()
         self.plotCanvas.draw_idle()
         if len(self.sol_cor.b_vals) > 0:
             b = self.sol_cor.b_vals
             x = self.sol_cor.x_vals
             y = self.sol_cor.y_vals
-            y_std = self.sol_cor.y_stds[-1]
-            x_std = self.sol_cor.x_stds[-1]
-            print('x std ', x_std)
+            y_std = self.sol_cor.y_stds
+            x_std = self.sol_cor.x_stds
+            print('b ', b, 'x ', x, 'x std ', x_std)
             # err_x = pg.ErrorBarItem(x=b, y=x[-1], height=x_std, beam=0.5)
             # err_y = pg.ErrorBarItem(x=b, y=y[-1], height=y_std, beam=0.5)
-            self.plotCanvas.axes.plot(b, x, pen='r', clear=True)
+            self.plotCanvas.axes.errorbar(b, x, x_std, fmt = 'bo')#, pen='r', clear=True)
             # self.ui.sol_plot.addItem(err_x)
             # self.ui.sol_plot.addItem(err_y)
-            self.plotCanvas.axes.plot(b, y, pen='g')
+            self.plotCanvas.axes.errorbar(b, y, y_std, fmt = 'go') #, pen='g')
 
     ############# Corrections ##################
 

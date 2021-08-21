@@ -18,18 +18,8 @@ class BPMRead(QThread):
 
     def run(self):
         """Collect bpm data, should work in rate logic"""
-        x = []
-        y = []
-        i = 0
-        test_x = TEST_X.pop(0)
-        test_y = TEST_Y.pop(0)
-        while i < self.readings:
-            if DEBUG:
-                x.append(test_x)
-                y.append(test_y)
-            else:
-                x.append(self.bpm.x)
-                y.append(self.bpm.y)
-            i+=1
+        self.bpm.acquire_data(self.readings);
+        while self.bpm.gathering_data:
             QThread.usleep(SETTLE)
-        self.signal.emit(np.mean(x), np.mean(y), 1.0, 1.0)
+        print(self.bpm.current_data)
+        self.signal.emit(self.bpm.x_ave, self.bpm.y_ave, self.bpm.x_std, self.bpm.y_std)

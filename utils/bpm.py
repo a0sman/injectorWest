@@ -5,6 +5,7 @@ from .model import bpm_constants as bc
 import numpy as np
 from .logger import logger
 from threading import Thread
+import time 
 
 def get_bpms():
     """Return different bpms in model"""
@@ -21,8 +22,6 @@ class BPM(object):
         self._y = PV(bpm_dict['y'], form='time')
         self._z = PV(bpm_dict['z'])
         self._tmit = PV(bpm_dict['tmit'], form='time')
-        self._status = PV(bpm_dict['status'])
-        self._alarm = PV(bpm_dict['alarm'])
         self._x_data = []
         self._y_data = []
         self._tmit_data = []
@@ -147,13 +146,15 @@ class BPM(object):
         self._readings = readings
         self.clear_data()
         self._gathering_data = True
-
         self._data_thread = Thread(target=self.watcher)
         self._data_thread.start()
-            
-        self._x.add_callback(self._x_acq_clbk, index=0, with_ctrlvars=False)
-        self._y.add_callback(self._y_acq_clbk, index=0, with_ctrlvars=False)
-        self._tmit.add_callback(self._tmit_acq_clbk, index=0, with_ctrlvars=False)
+        self._x_data.append(self.x)
+        self._y_data.append(self.y)  
+        self._tmit_data.append(self.tmit) 
+        if readings > 1:
+            self._x.add_callback(self._x_acq_clbk, index=0, with_ctrlvars=False)
+            self._y.add_callback(self._y_acq_clbk, index=0, with_ctrlvars=False)
+            self._tmit.add_callback(self._tmit_acq_clbk, index=0, with_ctrlvars=False)
 
     def watcher(self):
         """Watch for all the data to be done"""
@@ -163,6 +164,7 @@ class BPM(object):
         if self._data_clbk:
             self._data_clbk()
             self._data_clbk = None
+        self._gathering_data = False
         return
 
     def _x_acq_clbk(self, pv_name=None, value=None, char_value=None, time_stamp=None, **kw):
@@ -177,6 +179,7 @@ class BPM(object):
         if len(self._y_data) is self._readings:
             self._y.remove_callback(0)
 
+
     def _tmit_acq_clbk(self, pv_name=None, value=None, char_value=None, time_stamp=None, **kw):
         """tmit data callback"""
         self._tmit_data.append(value)
@@ -185,6 +188,6 @@ class BPM(object):
 
     def clear_data(self):
         """Clear the x, y, tmit data"""
-        self._x_vals = []
-        self._y_vals = []
-        self._tmit_vals = []
+        self._x_data = []
+        self._y_data = []
+        self._tmit_data = []

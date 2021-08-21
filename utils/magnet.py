@@ -29,6 +29,7 @@ class Magnet(object):
         self._ctrl = PV(mag_dict['ctrl'])
         self._tol = mag_dict['tol']
         self._length = mag_dict['length']
+        self.d = mag_dict['d']
         ctrl_vars = self._ctrl.get_ctrlvars()
         if ctrl_vars:
             self._ctrl_vars = ctrl_vars['enum_strs']

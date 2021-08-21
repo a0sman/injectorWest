@@ -2,11 +2,9 @@
 
 def create_bpm_dict(base):
     bpm_dict = {
-        'alarm': base + ':STA_ALH',
-        'status': base + ':STA',
-        'x': base + ':X_SLOW',
-        'y': base + ':Y_SLOW',
-        'tmit': base + ':TMIT_SLOW',
+        'x': base + ':X',
+        'y': base + ':Y',
+        'tmit': base + ':TMIT',
         'z': base + ':Z'
     }
     

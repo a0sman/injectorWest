@@ -14,7 +14,7 @@ from math import sin, cos, sqrt
 # s = sin(KL)
 # K = Bo / (2Bp)
 
-# Convert kG to Tesla Bt = BkG / 10
+# Convert kG*m to Tesla Bt = BkG / 10/ L
 
 # General scheme: Generate x and y rows for each solenoid setting,
 # This is a one off class.  For each scan instantiate a new SolCorrection object
@@ -22,11 +22,11 @@ from math import sin, cos, sqrt
 # if that becomes a need.
 
 class SolCorrection(object):
-    def __init__(self, sol, e_gun, d):
+    def __init__(self, sol, e_gun):
         self.sol = sol
         self._L = float(self.sol.length)  # Leff
         self._e_gun = float(e_gun)  # MeV
-        self._d = d  # distance from sol exit and bpm
+        self._d = self.sol.d  # distance from sol exit and bpm
         self._b = None
         self._p = None
         self._K = None
@@ -62,18 +62,19 @@ class SolCorrection(object):
         return self._b_vals
 
     def calc_b(self):
-        """Convert kG to Tesla"""
-        return self.sol.bact / 10.0
+        """Convert kG*m to Tesla"""
+        return self.sol.bact / 10.0 / self._L
 
     def calc_p(self):
         """momentum calculation"""
-        gamma = 1.0 + (self._e_gun / 0.511)
-        beta = sqrt(1.0 - (1 / gamma) ** 2)
-        return beta * gamma * sc.m_e * sc.c
+        mc2_e = 1e-6*sc.m_e * sc.c**2/sc.e
+        p = sqrt(self._e_gun**2 - mc2_e**2)*1e6/sc.c
+        return p
+    
 
     def calc_K(self, b, p):
         """Get the current K value"""
-        return (b * sc.e) / (2 * p)
+        return b/2/p
 
     def calc_c(self):
         """c term"""
@@ -85,19 +86,23 @@ class SolCorrection(object):
 
     def x11(self):
         """first term, x"""
-        return self._c ** 2 - self._d * self._K * self._s * self._c
+        s,c,d,k,l = self._s, self._c, self._d, self._K, self._L
+        return d*k*s*c - c**2
 
     def x12(self):
         """second term, x"""
-        return self._s * self._c * (1 / self._K) + self._d * self._c ** 2
+        s,c,d,k,l = self._s, self._c, self._d, self._K, self._L
+        return d*k*s**2 - s*c
 
     def x13(self):
         """third term, x"""
-        return self._s * self._c - self._d * self._K * self._s ** 2
+        s,c,d,k,l = self._s, self._c, self._d, self._K, self._L
+        return s*c/k + d*c**2 + (c*d*k*l*s - l*c**2)/2
 
     def x14(self):
         """fourth term, x"""
-        return self._s ** 2 * (1 / self._K) + self._d * self._s * self._c
+        s,c,d,k,l = self._s, self._c, self._d, self._K, self._L
+        return s**2/k + d*s*c + (d*k*l*s**2 - l*c*s)/2
 
     def x15(self):
         """Default"""
@@ -109,19 +114,23 @@ class SolCorrection(object):
 
     def y11(self):
         """first term y"""
-        return -self._s * self._c + self._d * self._K * self._s ** 2
+        s,c,d,k,l = self._s, self._c, self._d, self._K, self._L
+        return s*c - d*k*s**2
 
     def y12(self):
         """second term y"""
-        return -self._s ** 2 * (1 / self._K) - self._d * self._s * self._c
+        s,c,d,k,l = self._s, self._c, self._d, self._K, self._L      
+        return d*k*s*c - c**2
 
     def y13(self):
         """third term y"""
-        return self._c ** 2 - self._d * self._K * self._s * self._c
+        s,c,d,k,l = self._s, self._c, self._d, self._K, self._L
+        return -s**2/k - d*s*c - (d*k*l*s**2 - l*c*s)/2
 
     def y14(self):
         """fourth term y"""
-        return self._s * self._c * (1 / self._K) + self._d * self._c ** 2
+        s,c,d,k,l = self._s, self._c, self._d, self._K, self._L
+        return s*c/k + d*c**2 + (c*d*k*l*s - l*c**2)/2
 
     def y15(self):
         """Default"""
@@ -191,5 +200,5 @@ class SolCorrection(object):
         print('here is r ', r)
         print('here is array ', np.vstack((self._x_arrays, self._y_arrays)))
         pseudo_inv = pinv(np.vstack((self._x_arrays, self._y_arrays)))
-        print('here is result ', pseudo_inv.dot(r))
+        #print('here is result ', pseudo_inv.dot(r))
         return pseudo_inv.dot(r)

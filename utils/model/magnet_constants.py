@@ -15,7 +15,7 @@ CTRL = [
 ]
 
 
-def create_mag_dict(base, tol, length):
+def create_mag_dict(base, tol, length, d):
     mag_dict = {
         'bctrl': base + ':BCTRL',
         'bact': base + ':BACT',
@@ -23,14 +23,14 @@ def create_mag_dict(base, tol, length):
         'bcon': base + ':BCON',
         'ctrl': base + ':CTRL',
         'tol': tol,
-        'length': length
+        'length': length,
+        'd': d
     }
 
     return mag_dict
 
 
 MAGNETS = {
-    'SOL1BKB': create_mag_dict('SOLN:GUNB:100', 0.002, 0.1342),
-    'SOL2B': create_mag_dict('SOLN:GUNB:823', 0.002, 0.135),
-    'SOL1B': create_mag_dict('QUAD:LI22:201', 0.05, 0.1)
+    'SOL1B': create_mag_dict('SOLN:GUNB:212', .002, .0861, .2),
+    'SOL2B': create_mag_dict('SOLN:GUNB:823', 0.002, 0.0861, .2),
 }
