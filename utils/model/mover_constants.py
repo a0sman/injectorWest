@@ -1,30 +1,19 @@
 #!/usr/local/lcls/package/python/current/bin/python
 
-from .motor_constants import MOTORS
+from .motion_constants import MOTIONS
 
-SOL1B_MOV = {
-    'motors': {'SOL1B_M1': MOTORS['SOL1B_M1'],
-               'SOL1B_M2': MOTORS['SOL1B_M2'],
-               'SOL1B_M3': MOTORS['SOL1B_M3'],
-               'SOL1B_M4': MOTORS['SOL1B_M4'],
-               'SOL1B_M5': MOTORS['SOL1B_M5']},
-    'off': 'ACSW:LI00:NW02:2POWEROFF',
-    'on': 'ACSW:LI00:NW02:2POWERON',
-    'power_state': 'ACSW:LI00:NW02:2POWERSTATE'
+SOL1B_MOV = { 'X': MOTIONS['SOL1B_X'],
+               'XP': MOTIONS['SOL1B_XP'],
+               'Y': MOTIONS['SOL1B_Y'],
+               'YP': MOTIONS['SOL1B_YP']
 }
-
-SOL2B_MOV = {
-    'motors': {'SOL2B_M1': MOTORS['SOL2B_M1'],
-               'SOL2B_M2': MOTORS['SOL2B_M2'],
-               'SOL2B_M3': MOTORS['SOL2B_M3'],
-               'SOL2B_M4': MOTORS['SOL2B_M4'],
-               'SOL2B_M5': MOTORS['SOL2B_M5']},
-    'off': 'ACSW:LI00:NW02:3POWEROFF',
-    'on': 'ACSW:LI00:NW02:3POWERON',
-    'power_state': 'ACSW:LI00:NW02:3POWERSTATE'
+SOL2B_MOV = {'X': MOTIONS['SOL2B_X'],
+               'XP': MOTIONS['SOL2B_XP'],
+               'Y': MOTIONS['SOL2B_Y'],
+               'YP': MOTIONS['SOL2B_YP']
 }
 
 MOVERS = {
-    'SOL1B_MOV': SOL1B_MOV,
-    'SOL2B_MOV': SOL2B_MOV
+    'SOL1B': SOL1B_MOV,
+    'SOL2B': SOL2B_MOV
 }

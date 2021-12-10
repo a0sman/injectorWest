@@ -12,5 +12,6 @@ def create_bpm_dict(base):
 
 BPMS = {
     'BPM1B': create_bpm_dict('BPMS:GUNB:314'),
-    'BPM2B': create_bpm_dict('BPMS:GUNB:925')
+    'BPM2B': create_bpm_dict('BPMS:GUNB:925'),
+    'BPM1': create_bpm_dict('BPMS:IN20:221')
 }

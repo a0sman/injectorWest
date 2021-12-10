@@ -44,6 +44,7 @@ class SolAlign(Display):
         self.bpm_thread = None
         self.sol_vals = None
         self.abort = False
+        self.results = None
         self.logger = logger.custom_logger(__name__)
 
         self.plotCanvas = MplCanvas()
@@ -85,10 +86,9 @@ class SolAlign(Display):
         # self.setWindowTitle(constants.WIN_TITLE)
         self.ui.statusbar.setText(constants.INIT_MSG)
         self.ui.bpm_label.setText(self.bpm.name)
-        self.set_bact(self.solenoid.bact)
         self.solenoid.add_clbk(self.bact_clbk)
         #self.set_sol_hi_low()
-        self.set_binit(self.solenoid.bact)
+        self.set_binit(self.solenoid.bctrl)
         self.set_bact(self.solenoid.bact)
         self.ui.bpm_label.setText(self.bpm.name)
         # self.ui.statusbar.setStyleSheet('color: white')
@@ -107,7 +107,7 @@ class SolAlign(Display):
         """Convenience method to set the ui while we're scanning"""
         self.ui.start_button.setStyleSheet(constants.ABORT_BTN_CLR)
         self.ui.start_button.setText(constants.ABORT)
-        self.set_binit(self.solenoid.bact)
+        self.set_binit(self.solenoid.bctrl)
         self.ui.sol_combo.setEnabled(False)
         self.ui.percent_sb.setEnabled(False)
         self.ui.sol_upper.setReadOnly(True)
@@ -127,7 +127,7 @@ class SolAlign(Display):
         self.ui.sol_lower.setReadOnly(False)
         self.ui.meas_num_combo.setEnabled(True)
         self.ui.bpm_readings.setEnabled(True)
-        self.ui.apply_cor.setEnabled(True)
+        #self.ui.apply_cor.setEnabled(True)
 
     ############### UI Helper Methods ##############
 
@@ -150,6 +150,7 @@ class SolAlign(Display):
         self.solenoid.remove_clbk(self.bact_clbk)
         self.solenoid = self.get_sol()
         self.solenoid.add_clbk(self.bact_clbk)
+        self.set_initial_ui()
         self.bpm = BPM(constants.SOL_BPM[cur_name])
         self.ui.bpm_label.setText(self.bpm.name)
         self.log_msg(constants.NEW_SELECTED.format(cur_name))
@@ -197,10 +198,11 @@ class SolAlign(Display):
         """Start or Abort a scan"""
         if self.ui.start_button.text() == constants.ABORT:
             self.abort = True
+            self.bpm_thread.stop()
             self.log_msg(constants.ABORT_MSG)
             self.restore()
             return
-
+        self.abort = False
         self.start_scan()
 
     def start_scan(self):
@@ -210,16 +212,17 @@ class SolAlign(Display):
         self.sol_vals = self.get_sol_vals()
         # Need to get actual z locations and Leff
         self.sol_cor = SolCorrection(self.solenoid, float(self.ui.gun_energy.text()))
+        print("running step");
         self.run_step()
 
     def run_step(self):
         """Run this for each solenoid setting"""
         # Quit if abort requested and reset
+        print("not aborted? {0}".format(self.abort))
         if self.abort:
-            self.abort = False
-            self.restore()
             return
         # We've run through all sol vals
+        print("# of sol vals? {0}".format(len(self.sol_vals)))
         if len(self.sol_vals) > 0:
             self.run_sol_thread()
             return
@@ -266,14 +269,15 @@ class SolAlign(Display):
         self.ui.y_prime.setText('{:.3g}'.format(results[3]))
         self.ui.x_ref.setText('{:.3g}'.format(results[4]))
         self.ui.y_ref.setText('{:.3g}'.format(results[5]))
-
+        self.results = results
+        self.ui.apply_cor.setEnabled(True)
     def get_sol_vals(self):
         """Find the steps for the current scan"""
         upper = float(self.ui.sol_upper.text())
         lower = float(self.ui.sol_lower.text())
         steps = int(self.ui.meas_num_combo.currentText())
         sol_vals = np.linspace(lower, upper, steps).tolist()
-        self.log_msg('cacluated steps {0}'.format(sol_vals))
+        self.log_msg('calculated steps {0}'.format(sol_vals))
 
         return sol_vals
 
@@ -298,8 +302,15 @@ class SolAlign(Display):
     ############# Corrections ##################
 
     def apply_correction(self):
-        self.log_msg('applying correction')
-
+        self.log_msg('applying correction: {0}'.format(self.results))
+        x0 = self.solenoid.mover.x
+        y0 = self.solenoid.mover.y
+        xp0 = self.solenoid.mover.xp
+        yp0 = self.solenoid.mover.yp 
+        self.solenoid.mover.x = x0 + self.results[0]
+        self.solenoid.mover.y = y0 + self.results[1]
+        self.solenoid.mover.xp = xp0 - self.results[2]
+        self.solenoid.mover.yp = yp0 - self.results[3]
     ############# Log and status bar message #################
 
     def log_msg(self, msg):

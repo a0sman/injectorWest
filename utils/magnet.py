@@ -7,7 +7,7 @@ from inspect import getmembers
 from .logger import logger
 from threading import Thread
 from time import sleep
-
+from mover import Mover
 
 def get_magnets():
     """Return MAD names of all magenets that have models"""
@@ -30,6 +30,7 @@ class Magnet(object):
         self._tol = mag_dict['tol']
         self._length = mag_dict['length']
         self.d = mag_dict['d']
+        self.mover = Mover(name)
         ctrl_vars = self._ctrl.get_ctrlvars()
         if ctrl_vars:
             self._ctrl_vars = ctrl_vars['enum_strs']
